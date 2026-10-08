@@ -7,6 +7,13 @@
       name="description"
       content="Ink & Heart is a community for writers, readers, and meaningful connections."
     />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';"
+    />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
     <title>Ink & Heart</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -16,12 +23,12 @@
         <div class="logo">Ink & Heart</div>
 
         <nav class="nav-buttons" aria-label="Main navigation">
-          <button type="button" onclick="showSection('home')">Home</button>
-          <button type="button" onclick="showSection('write')">Write</button>
-          <button type="button" onclick="showSection('dating')">Dating</button>
-          <button type="button" onclick="showSection('messages')">Messages</button>
-          <button type="button" onclick="showSection('profile')">Profile</button>
-          <button type="button" onclick="showSection('payment')">Payment</button>
+          <button type="button" data-action="show-section" data-section="home">Home</button>
+          <button type="button" data-action="show-section" data-section="write">Write</button>
+          <button type="button" data-action="show-section" data-section="dating">Dating</button>
+          <button type="button" data-action="show-section" data-section="messages">Messages</button>
+          <button type="button" data-action="show-section" data-section="profile">Profile</button>
+          <button type="button" data-action="show-section" data-section="payment">Payment</button>
         </nav>
       </div>
     </header>
@@ -57,8 +64,9 @@
 
           <button
             class="primary"
+            type="button"
+            data-action="create-post"
             style="border:none;padding:12px 18px;border-radius:8px;"
-            onclick="createPost()"
           >
             Publish
           </button>
@@ -121,8 +129,9 @@
 
           <button
             class="primary"
+            type="button"
+            data-action="save-profile"
             style="border:none;padding:12px 18px;border-radius:8px;"
-            onclick="saveProfile()"
           >
             Save Profile
           </button>
@@ -141,8 +150,9 @@
 
           <button
             class="primary"
+            type="button"
+            data-action="subscribe"
             style="border:none;padding:12px 20px;border-radius:8px;"
-            onclick="subscribe()"
           >
             Subscribe
           </button>

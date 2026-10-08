@@ -2,6 +2,16 @@
 
 A public-facing, static website prototype for a literary community and dating platform.
 
+## Security improvements
+This version adds several client-side hardening steps intended for a public deployment:
+
+- Content Security Policy (CSP) header in `index.html`
+- No inline JavaScript event handlers; actions are bound in `script.js`
+- Input sanitization and length limits before saving to local storage
+- Safe storage read/write wrappers to prevent crashes from malformed data
+- HTML escaping for rendered user content to reduce XSS risk
+- Security headers: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
+
 ## Features
 - Publish posts and stories
 - Like and comment on writing
@@ -54,7 +64,10 @@ To make the website show up on Google:
 3. Add title and meta description in the HTML head
 4. Ensure your pages are accessible and indexable
 
+## Important note
+This is still a frontend-only app. Real security requires a backend with authentication, a database, server-side validation, and secure session management. The protections above greatly reduce common client-side risks, but they are not a substitute for a secure backend.
+
 ## Project files
-- `index.html` — main page structure
+- `index.html` — main page structure and security metadata
 - `styles.css` — styling
-- `script.js` — app logic
+- `script.js` — app logic and safety checks

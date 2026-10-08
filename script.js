@@ -1,20 +1,63 @@
-let posts = JSON.parse(localStorage.getItem("posts") || "[]");
+const STORAGE_KEYS = {
+  posts: "posts",
+  profile: "profile",
+  writingChats: "writingChats",
+  datingChats: "datingChats",
+  datingRequests: "datingRequests",
+};
 
-let profile = JSON.parse(
-  localStorage.getItem("profile") ||
-    '{"name":"","bio":"","dating":false,"premium":false}'
-);
+let posts = readJson(STORAGE_KEYS.posts, []);
 
-let writingChats = JSON.parse(localStorage.getItem("writingChats") || "{}");
-let datingChats = JSON.parse(localStorage.getItem("datingChats") || "{}");
-let datingRequests = JSON.parse(localStorage.getItem("datingRequests") || "[]");
+let profile = readJson(STORAGE_KEYS.profile, {
+  name: "",
+  bio: "",
+  dating: false,
+  premium: false,
+});
+
+let writingChats = readJson(STORAGE_KEYS.writingChats, {});
+let datingChats = readJson(STORAGE_KEYS.datingChats, {});
+let datingRequests = readJson(STORAGE_KEYS.datingRequests, []);
+
+function readJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    alert("Storage is full or unavailable. Please free up space and try again.");
+  }
+}
+
+function sanitizeText(value, maxLength = 2000) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeKey(value) {
+  return sanitizeText(value, 200)
+    .replace(/[<>"'`]/g, "")
+    .replace(/\u0000/g, "");
+}
 
 function showSection(id) {
   document.querySelectorAll(".section").forEach((section) => {
     section.classList.remove("active");
   });
 
-  document.getElementById(id).classList.add("active");
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add("active");
+  }
 
   if (id === "home") renderPosts();
   if (id === "dating") renderDating();
@@ -23,8 +66,8 @@ function showSection(id) {
 }
 
 function createPost() {
-  const title = document.getElementById("postTitle").value.trim();
-  const content = document.getElementById("postContent").value.trim();
+  const title = sanitizeText(document.getElementById("postTitle").value, 120);
+  const content = sanitizeText(document.getElementById("postContent").value, 5000);
 
   if (!title || !content) {
     alert("Please add a title and your writing.");
@@ -41,7 +84,7 @@ function createPost() {
     comments: [],
   });
 
-  localStorage.setItem("posts", JSON.stringify(posts));
+  writeJson(STORAGE_KEYS.posts, posts);
   document.getElementById("postTitle").value = "";
   document.getElementById("postContent").value = "";
 
@@ -79,12 +122,17 @@ function renderPosts() {
       <div class="post-content">${escapeHTML(post.content)}</div>
 
       <div class="post-actions">
-        <button class="like-btn ${post.liked ? "liked" : ""}" onclick="toggleLike(${post.id})">
+        <button
+          type="button"
+          class="like-btn ${post.liked ? "liked" : ""}"
+          data-action="toggle-like"
+          data-id="${post.id}"
+        >
           ${post.liked ? "♥ Liked" : "♡ Like"}${post.likes > 0 ? ` ${post.likes}` : ""}
         </button>
 
-        <button onclick="toggleComments(${post.id})">💬 Comments</button>
-        <button onclick="openWritingChat('${escapeAttr(post.author)}')">✉ Message</button>
+        <button type="button" data-action="toggle-comments" data-id="${post.id}">💬 Comments</button>
+        <button type="button" data-action="open-writing-chat" data-author="${escapeAttr(post.author)}">✉ Message</button>
       </div>
 
       <div class="comments" id="comments-${post.id}">
@@ -92,7 +140,7 @@ function renderPosts() {
 
         <div class="comment-box">
           <input id="comment-input-${post.id}" placeholder="Write a comment..." />
-          <button class="primary" onclick="addComment(${post.id})">Send</button>
+          <button type="button" class="primary" data-action="add-comment" data-id="${post.id}">Send</button>
         </div>
       </div>
     `;
@@ -114,18 +162,20 @@ function toggleLike(id) {
     post.likes += 1;
   }
 
-  localStorage.setItem("posts", JSON.stringify(posts));
+  writeJson(STORAGE_KEYS.posts, posts);
   renderPosts();
 }
 
 function toggleComments(id) {
   const box = document.getElementById("comments-" + id);
-  box.classList.toggle("show");
+  if (box) {
+    box.classList.toggle("show");
+  }
 }
 
 function addComment(id) {
   const input = document.getElementById("comment-input-" + id);
-  const text = input.value.trim();
+  const text = sanitizeText(input?.value || "", 500);
 
   if (!text) return;
 
@@ -133,11 +183,11 @@ function addComment(id) {
   if (!post) return;
 
   post.comments.push({
-    author: profile.name || "Anonymous",
+    author: sanitizeText(profile.name || "Anonymous", 80),
     text,
   });
 
-  localStorage.setItem("posts", JSON.stringify(posts));
+  writeJson(STORAGE_KEYS.posts, posts);
   input.value = "";
   renderComments(id);
 }
@@ -162,31 +212,32 @@ function renderComments(id) {
 }
 
 function openWritingChat(author) {
+  const safeAuthor = normalizeKey(author || "");
+  if (!safeAuthor) return;
+
   showSection("messages");
-
-  const key = author;
-  if (!writingChats[key]) writingChats[key] = [];
-
-  renderWritingChat(key);
+  if (!writingChats[safeAuthor]) writingChats[safeAuthor] = [];
+  renderWritingChat(safeAuthor);
 }
 
 function renderWritingChat(key) {
   const area = document.getElementById("chatArea");
+  const safeKey = normalizeKey(key);
 
   area.innerHTML = `
     <div class="chat">
-      <div class="chat-header">Writing discussion with ${escapeHTML(key)}</div>
+      <div class="chat-header">Writing discussion with ${escapeHTML(safeKey)}</div>
 
       <div class="chat-messages" id="chatMessages"></div>
 
       <div class="chat-input">
         <input id="chatInput" placeholder="Discuss the writing..." />
-        <button onclick="sendWritingMessage('${escapeAttr(key)}')">Send</button>
+        <button type="button" data-action="send-writing-message" data-key="${escapeAttr(safeKey)}">Send</button>
       </div>
     </div>
   `;
 
-  const messages = writingChats[key] || [];
+  const messages = writingChats[safeKey] || [];
   const box = document.getElementById("chatMessages");
 
   messages.forEach((m) => {
@@ -201,17 +252,18 @@ function renderWritingChat(key) {
 
 function sendWritingMessage(key) {
   const input = document.getElementById("chatInput");
-  const text = input.value.trim();
+  const text = sanitizeText(input?.value || "", 800);
 
   if (!text) return;
 
-  if (!writingChats[key]) writingChats[key] = [];
+  const safeKey = normalizeKey(key);
+  if (!writingChats[safeKey]) writingChats[safeKey] = [];
 
-  writingChats[key].push({ text, me: true });
-  localStorage.setItem("writingChats", JSON.stringify(writingChats));
+  writingChats[safeKey].push({ text, me: true });
+  writeJson(STORAGE_KEYS.writingChats, writingChats);
 
   input.value = "";
-  renderWritingChat(key);
+  renderWritingChat(safeKey);
 }
 
 function renderDating() {
@@ -219,77 +271,80 @@ function renderDating() {
   const empty = document.getElementById("emptyDating");
 
   container.innerHTML = "";
-
   empty.style.display = "block";
 }
 
 function ringBell(user) {
+  const person = normalizeKey(user);
+
   datingRequests.push({
-    from: profile.name || "Anonymous",
-    to: user,
+    from: sanitizeText(profile.name || "Anonymous", 80),
+    to: person,
     status: "pending",
   });
 
-  localStorage.setItem("datingRequests", JSON.stringify(datingRequests));
+  writeJson(STORAGE_KEYS.datingRequests, datingRequests);
   alert("Love Interest Sent");
 }
 
 function acceptLoveInterest(name) {
+  const safeName = normalizeKey(name);
   const request = datingRequests.find(
-    (r) => r.from === name && r.status === "pending"
+    (r) => normalizeKey(r.from) === safeName && r.status === "pending"
   );
 
   if (!request) return;
 
   request.status = "accepted";
-  localStorage.setItem("datingRequests", JSON.stringify(datingRequests));
+  writeJson(STORAGE_KEYS.datingRequests, datingRequests);
 
-  const key = name;
-  if (!datingChats[key]) datingChats[key] = [];
-
-  localStorage.setItem("datingChats", JSON.stringify(datingChats));
-  showDatingChat(key);
+  if (!datingChats[safeName]) datingChats[safeName] = [];
+  writeJson(STORAGE_KEYS.datingChats, datingChats);
+  showDatingChat(safeName);
 }
 
 function declineLoveInterest(name) {
+  const safeName = normalizeKey(name);
   const request = datingRequests.find(
-    (r) => r.from === name && r.status === "pending"
+    (r) => normalizeKey(r.from) === safeName && r.status === "pending"
   );
 
   if (!request) return;
 
   request.status = "declined";
-  localStorage.setItem("datingRequests", JSON.stringify(datingRequests));
+  writeJson(STORAGE_KEYS.datingRequests, datingRequests);
   renderMessages();
 }
 
 function showDatingChat(name) {
+  const safeName = normalizeKey(name);
   showSection("messages");
 
   const area = document.getElementById("chatArea");
 
   area.innerHTML = `
     <div class="chat">
-      <div class="chat-header">Dating Chat with ${escapeHTML(name)}</div>
+      <div class="chat-header">Dating Chat with ${escapeHTML(safeName)}</div>
       <div class="chat-messages" id="datingMessages"></div>
 
       <div class="chat-input">
         <input id="datingInput" placeholder="Write a message..." />
-        <button onclick="sendDatingMessage('${escapeAttr(name)}')">Send</button>
+        <button type="button" data-action="send-dating-message" data-key="${escapeAttr(safeName)}">Send</button>
       </div>
     </div>
   `;
 
-  renderDatingMessages(name);
+  renderDatingMessages(safeName);
 }
 
 function renderDatingMessages(name) {
+  const safeName = normalizeKey(name);
   const box = document.getElementById("datingMessages");
   if (!box) return;
 
   box.innerHTML = "";
 
-  const messages = datingChats[name] || [];
+  const messages = datingChats[safeName] || [];
   messages.forEach((m) => {
     const div = document.createElement("div");
     div.className = "message " + (m.me ? "me" : "them");
@@ -302,17 +357,18 @@ function renderDatingMessages(name) {
 
 function sendDatingMessage(name) {
   const input = document.getElementById("datingInput");
-  const text = input.value.trim();
+  const text = sanitizeText(input?.value || "", 800);
 
   if (!text) return;
 
-  if (!datingChats[name]) datingChats[name] = [];
+  const safeName = normalizeKey(name);
+  if (!datingChats[safeName]) datingChats[safeName] = [];
 
-  datingChats[name].push({ text, me: true });
-  localStorage.setItem("datingChats", JSON.stringify(datingChats));
+  datingChats[safeName].push({ text, me: true });
+  writeJson(STORAGE_KEYS.datingChats, datingChats);
 
   input.value = "";
-  renderDatingMessages(name);
+  renderDatingMessages(safeName);
 }
 
 function renderMessages() {
@@ -330,11 +386,11 @@ function renderMessages() {
         <strong>Love Interest Sent</strong>
         <p>${escapeHTML(request.from)} is interested in getting to know you.</p>
 
-        <button class="accept" onclick="acceptLoveInterest('${escapeAttr(request.from)}')">
+        <button type="button" class="accept" data-action="accept-love-interest" data-name="${escapeAttr(request.from)}">
           Accept
         </button>
 
-        <button class="decline" onclick="declineLoveInterest('${escapeAttr(request.from)}')">
+        <button type="button" class="decline" data-action="decline-love-interest" data-name="${escapeAttr(request.from)}">
           Decline
         </button>
       `;
@@ -354,15 +410,15 @@ function renderMessages() {
 }
 
 function saveProfile() {
-  const name = document.getElementById("profileName").value.trim();
-  const bio = document.getElementById("profileBio").value.trim();
-  const dating = document.getElementById("datingInterest").checked;
+  const name = sanitizeText(document.getElementById("profileName").value, 80);
+  const bio = sanitizeText(document.getElementById("profileBio").value, 500);
+  const dating = Boolean(document.getElementById("datingInterest").checked);
 
   profile.name = name;
   profile.bio = bio;
   profile.dating = dating;
 
-  localStorage.setItem("profile", JSON.stringify(profile));
+  writeJson(STORAGE_KEYS.profile, profile);
   alert("Profile saved.");
   renderProfile();
 }
@@ -370,7 +426,7 @@ function saveProfile() {
 function renderProfile() {
   document.getElementById("profileName").value = profile.name || "";
   document.getElementById("profileBio").value = profile.bio || "";
-  document.getElementById("datingInterest").checked = profile.dating || false;
+  document.getElementById("datingInterest").checked = Boolean(profile.dating);
 
   document.getElementById("profilePreview").innerHTML = `
     <div class="profile">
@@ -387,7 +443,7 @@ function renderProfile() {
 
 function subscribe() {
   profile.premium = true;
-  localStorage.setItem("profile", JSON.stringify(profile));
+  writeJson(STORAGE_KEYS.profile, profile);
 
   document.getElementById("paymentStatus").textContent =
     "Premium status enabled for this demo.";
@@ -405,8 +461,58 @@ function escapeHTML(text) {
 }
 
 function escapeAttr(text) {
-  return String(text).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  return String(text)
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'");
 }
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+
+  const { action, section, id, author, key, name } = button.dataset;
+
+  switch (action) {
+    case "show-section":
+      showSection(section);
+      break;
+    case "create-post":
+      createPost();
+      break;
+    case "save-profile":
+      saveProfile();
+      break;
+    case "subscribe":
+      subscribe();
+      break;
+    case "toggle-like":
+      toggleLike(Number(id));
+      break;
+    case "toggle-comments":
+      toggleComments(Number(id));
+      break;
+    case "add-comment":
+      addComment(Number(id));
+      break;
+    case "open-writing-chat":
+      openWritingChat(author || "");
+      break;
+    case "send-writing-message":
+      sendWritingMessage(key || "");
+      break;
+    case "send-dating-message":
+      sendDatingMessage(key || "");
+      break;
+    case "accept-love-interest":
+      acceptLoveInterest(name || "");
+      break;
+    case "decline-love-interest":
+      declineLoveInterest(name || "");
+      break;
+    default:
+      break;
+  }
+});
 
 renderPosts();
 renderDating();
