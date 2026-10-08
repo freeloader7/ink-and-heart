@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Ink & Heart is a community for writers, readers, and meaningful connections."
+    />
+    <title>Ink & Heart</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="nav">
+        <div class="logo">Ink & Heart</div>
+
+        <nav class="nav-buttons" aria-label="Main navigation">
+          <button type="button" onclick="showSection('home')">Home</button>
+          <button type="button" onclick="showSection('write')">Write</button>
+          <button type="button" onclick="showSection('dating')">Dating</button>
+          <button type="button" onclick="showSection('messages')">Messages</button>
+          <button type="button" onclick="showSection('profile')">Profile</button>
+          <button type="button" onclick="showSection('payment')">Payment</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="home" class="section active">
+        <div class="hero">
+          <h1>Welcome to Ink & Heart</h1>
+          <p>
+            A place for writers, readers and people looking for meaningful
+            connections.
+          </p>
+        </div>
+
+        <div id="posts"></div>
+
+        <div id="emptyHome" class="empty">
+          <h3>No posts yet</h3>
+          <p>Be the first person to share something you have written.</p>
+        </div>
+      </section>
+
+      <section id="write" class="section">
+        <div class="form-card">
+          <h2>Create a Post</h2>
+
+          <input id="postTitle" placeholder="Title of your work" />
+
+          <textarea
+            id="postContent"
+            placeholder="Write your story, poem, article or anything you want to share..."
+          ></textarea>
+
+          <button
+            class="primary"
+            style="border:none;padding:12px 18px;border-radius:8px;"
+            onclick="createPost()"
+          >
+            Publish
+          </button>
+        </div>
+      </section>
+
+      <section id="dating" class="section">
+        <div class="hero">
+          <h1>Dating</h1>
+          <p>
+            People who are interested in relationships will appear here. If you
+            like someone, visit their profile and Ring the Bell.
+          </p>
+        </div>
+
+        <div id="datingProfiles"></div>
+
+        <div id="emptyDating" class="empty">
+          <h3>No dating profiles yet</h3>
+          <p>
+            People who choose to appear in the Dating section will be shown here.
+          </p>
+        </div>
+      </section>
+
+      <section id="messages" class="section">
+        <div class="hero">
+          <h1>Messages</h1>
+          <p>
+            Writing conversations and accepted dating conversations are kept
+            separate.
+          </p>
+        </div>
+
+        <div id="chatArea">
+          <div class="empty">
+            <h3>No conversations yet</h3>
+            <p>
+              Message a writer from their post, or accept a love interest to
+              begin a dating conversation.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="profile" class="section">
+        <div class="form-card">
+          <h2>Your Profile</h2>
+
+          <input id="profileName" placeholder="Your name" />
+
+          <input id="profileBio" placeholder="Tell people a little about yourself" />
+
+          <label>
+            <input type="checkbox" id="datingInterest" />
+            Interested in relationships
+          </label>
+
+          <br /><br />
+
+          <button
+            class="primary"
+            style="border:none;padding:12px 18px;border-radius:8px;"
+            onclick="saveProfile()"
+          >
+            Save Profile
+          </button>
+        </div>
+
+        <div id="profilePreview"></div>
+      </section>
+
+      <section id="payment" class="section">
+        <div class="form-card">
+          <h2>Premium Membership</h2>
+
+          <p>Unlock premium literary content and premium features.</p>
+
+          <div class="price">$5 / month</div>
+
+          <button
+            class="primary"
+            style="border:none;padding:12px 20px;border-radius:8px;"
+            onclick="subscribe()"
+          >
+            Subscribe
+          </button>
+
+          <p id="paymentStatus" style="margin-top:15px;color:#777;"></p>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
